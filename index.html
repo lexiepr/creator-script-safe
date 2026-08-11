@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Creator Script Safe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --teal:#0F766E; --teal-dark:#115E59;
+    --bg:#F7F9F5; --ink:#10201F; --ink-soft:#2B3B37;
+    --muted:#4B5D59; --faint:#8A9A95; --border:#DCE3DE;
+    --green-bg:#E3F5E8; --green-ink:#146C38;
+    --amber-bg:#FCF4D6; --amber-ink:#8A6A05;
+    --red-bg:#FBE7E7; --red-ink:#B02A2A;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans',ui-sans-serif,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:var(--teal);text-decoration:none}
+  a:hover{color:var(--teal-dark)}
+  .mono{font-family:'IBM Plex Mono',monospace}
+  button{font-family:inherit}
+  .btn-primary{display:inline-flex;align-items:center;justify-content:center;border:none;border-radius:6px;background:var(--teal);color:var(--bg);font-size:14px;font-weight:500;padding:10px 18px;cursor:pointer}
+  .btn-primary:hover{background:var(--teal-dark)}
+  .css-blink::after{content:"";display:inline-block;width:.5ch;height:.9em;margin-left:.15em;background:var(--teal);vertical-align:-0.12em;animation:blink 1.1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+
+  header{position:sticky;top:0;z-index:40;background:rgba(247,249,245,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+  .wrap{max-width:1152px;margin:0 auto;padding:0 24px}
+  .navbar{display:flex;align-items:center;justify-content:space-between;gap:16px;height:64px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:500;color:var(--ink)}
+  .brand-mark{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;background:var(--teal);color:var(--bg);font-size:11px}
+  nav.links{display:flex;align-items:center;gap:28px;font-size:14px;color:var(--muted)}
+  nav.links a{color:var(--muted)}
+  .navright{display:flex;align-items:center;gap:12px}
+  .langswitch{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;font-size:11px}
+  .langswitch button{padding:6px 10px;background:#fff;color:var(--muted);border:none;cursor:pointer}
+  .langswitch button.active{background:var(--teal);color:var(--bg)}
+  .langswitch button:nth-child(2){border-left:1px solid var(--border);border-right:1px solid var(--border)}
+
+  section{padding:0 0}
+  .hero{padding:56px 24px 64px}
+  .hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;row-gap:20px;align-items:start}
+  .eyebrow{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);margin:0 0 20px}
+  h1{text-wrap:balance;font-size:2.6rem;line-height:1.12;font-weight:600;margin:0}
+  .hero-desc{margin-top:24px;font-size:17px;line-height:1.7;color:var(--muted);max-width:46ch}
+
+  .mockup{border-radius:8px;border:1px solid var(--border);background:#fff;box-shadow:0 1px 2px rgba(16,32,31,.04);overflow:hidden;max-width:485px}
+  .mockup-tabs{display:flex;background:var(--bg);border-bottom:1px solid var(--border)}
+  .mockup-tabs button{flex:1;font-size:12px;padding:10px 12px;border:none;cursor:pointer;background:transparent;color:var(--faint);transition:background .2s ease,color .2s ease}
+  .mockup-tabs button.active{background:#fff;color:var(--teal);font-weight:500}
+  .mockup-body{position:relative;min-height:320px}
+  .panel{position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity .35s ease}
+  .panel.active{opacity:1;pointer-events:auto}
+  .panel-head{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--bg)}
+  .panel-head .fname{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+  .flagpill{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--amber-ink)}
+  .dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+  .review-cols{display:grid;grid-template-columns:1fr 1fr}
+  .review-col{padding:18px}
+  .review-col.left{border-right:1px solid var(--border)}
+  .review-col.right{background:rgba(227,245,232,.4)}
+  .colhead{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:0 0 12px}
+  .flagline p{font-size:13px;line-height:1.7;color:var(--ink-soft);margin:0}
+  .flagline .lnum{font-variant-numeric:tabular-nums;color:var(--faint);margin-right:8px}
+  .hl-amber{background-image:linear-gradient(var(--amber-bg),var(--amber-bg));background-repeat:no-repeat;background-size:100% .5em;background-position:0 85%;text-decoration:underline;text-decoration-color:#EAB308;text-decoration-thickness:2px;text-underline-offset:3px}
+  .hl-red{background-image:linear-gradient(var(--red-bg),var(--red-bg));background-repeat:no-repeat;background-size:100% .5em;background-position:0 85%;text-decoration:underline;text-decoration-color:#DC2626;text-decoration-thickness:2px;text-underline-offset:3px}
+  .badge{margin-top:6px;display:inline-block;font-size:11px;padding:2px 8px;border-radius:6px}
+  .badge-amber{background:var(--amber-bg);color:var(--amber-ink)}
+  .badge-red{background:var(--red-bg);color:var(--red-ink)}
+  .badge-green{background:var(--green-bg);color:var(--green-ink)}
+  .rewrite-block{margin-bottom:16px}
+  .rewrite-block p{font-size:13px;line-height:1.7;color:var(--ink);margin:0}
+  .rewrite-meta{margin-top:6px;display:flex;align-items:center;gap:8px}
+  .copylink{font-size:11px;color:var(--teal);background:none;border:none;cursor:pointer;text-decoration:underline;text-underline-offset:2px;padding:0}
+  .create-panel-body{padding:18px}
+  .arrow-row{margin:10px 0;display:flex;align-items:center;gap:6px;color:var(--faint);font-size:11px}
+  .create-note-row{margin-top:10px;display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+  .create-note-row span.note{font-size:12px;line-height:1.6;color:var(--muted)}
+
+  #workflow{border-top:1px solid var(--border)}
+  .section-pad{padding:64px 24px 80px}
+  h2{text-wrap:balance;font-size:1.75rem;font-weight:600;margin:0;max-width:32ch}
+  .steps{margin-top:48px;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+  .step{display:grid;grid-template-columns:2.5rem 1fr;gap:20px;padding:36px 0;border-bottom:1px solid var(--border)}
+  .step:last-child{border-bottom:none}
+  .step-num{font-size:14px;color:var(--faint)}
+  .step-inner{display:grid;grid-template-columns:1fr 1fr;gap:40px}
+  .step-inner.center{align-items:center}
+  .step h3{font-size:18px;font-weight:600;margin:0}
+  .step p.desc{margin-top:8px;font-size:15px;line-height:1.7;color:var(--muted);max-width:42ch}
+  .tag{font-size:12px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);color:var(--muted)}
+  .tagrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .demo-card{border-radius:8px;border:1px solid var(--border);background:#fff;padding:16px;max-width:485px}
+  .demo-card p{font-size:13px;margin:0;color:var(--ink-soft)}
+  .demo-card p.out{color:var(--ink)}
+  .grid4{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:485px}
+  .minicard{border-radius:6px;border:1px solid var(--border);background:#fff;padding:10px 12px}
+  .minicard .t{font-size:11px;text-transform:uppercase;letter-spacing:.1em;margin:0}
+  .minicard .d{margin-top:4px;font-size:12px;color:var(--muted)}
+  .btn-outline{margin-top:16px;display:inline-flex;align-items:center;border-radius:6px;border:1px solid var(--border);color:var(--ink);font-size:12px;font-weight:500;padding:8px 14px;background:none;cursor:pointer}
+  ul.bullets{font-size:13px;color:var(--muted);margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+  ul.bullets li{display:flex;align-items:flex-start;gap:8px}
+  ul.bullets li::before{content:"";margin-top:6px;width:4px;height:4px;border-radius:50%;background:var(--teal);flex-shrink:0}
+
+  #use-cases{border-top:1px solid var(--border);background:rgba(255,255,255,.6)}
+  .uc-grid{margin-top:40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+  .uc-card{border-radius:8px;border:1px solid var(--border);background:var(--bg);padding:20px}
+  .uc-card h3{font-size:14px;font-weight:600;margin:0}
+  .uc-card p{margin-top:6px;font-size:13px;line-height:1.7;color:var(--muted)}
+
+  #note{border-top:1px solid var(--border)}
+  .disclaimer-box{border-radius:8px;border:1px solid var(--border);background:rgba(227,245,232,.4);padding:26px 32px}
+  .disclaimer-box p.txt{font-size:14px;line-height:1.7;color:var(--ink-soft);margin:0}
+
+  footer{border-top:1px solid var(--border)}
+  .footwrap{max-width:1152px;margin:0 auto;padding:40px 24px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px}
+  .foottag{font-size:12px;color:var(--faint);line-height:1.7;margin:0}
+  .foot-brand{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink)}
+  .foot-brand .brand-mark{width:24px;height:24px;font-size:10px}
+
+  /* ---------- Modal ---------- */
+  .modal-overlay{position:fixed;inset:0;background:rgba(16,32,31,.45);display:none;align-items:center;justify-content:center;padding:20px;z-index:1000}
+  .modal-overlay.open{display:flex}
+  .modal{width:100%;max-width:560px;background:#fff;border-radius:10px;border:1px solid var(--border);box-shadow:0 20px 60px rgba(16,32,31,.25);overflow:hidden}
+  .modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border)}
+  .modal-head h3{margin:0;font-size:16px;font-weight:600}
+  .modal-close{border:none;background:none;cursor:pointer;font-size:18px;color:var(--faint);line-height:1;padding:4px}
+  .modal-close:hover{color:var(--ink)}
+  .modal-body{padding:20px 22px}
+  .modal-body label{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);margin-bottom:8px}
+  .modal-body textarea{width:100%;min-height:150px;resize:vertical;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:14px;line-height:1.6;font-family:inherit;color:var(--ink);background:var(--bg)}
+  .modal-body textarea:focus{outline:2px solid var(--teal);outline-offset:1px}
+  .modal-hint{margin-top:8px;font-size:12px;color:var(--faint)}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--border)}
+  .btn-ghost{background:none;border:1px solid var(--border);border-radius:6px;padding:9px 16px;font-size:14px;color:var(--muted);cursor:pointer}
+  .btn-ghost:hover{color:var(--ink)}
+  .btn-submit{border:none;border-radius:6px;background:var(--teal);color:var(--bg);font-size:14px;font-weight:500;padding:9px 18px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+  .btn-submit:disabled{opacity:.6;cursor:not-allowed}
+  .spinner{width:14px;height:14px;border-radius:50%;border:2px solid rgba(247,249,245,.5);border-top-color:#fff;animation:spin .7s linear infinite;display:none}
+  .spinner.show{display:inline-block}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .result-box{margin-top:16px;border-radius:8px;border:1px solid var(--border);background:var(--bg);padding:14px 16px;font-size:13px;line-height:1.7;color:var(--ink-soft);white-space:pre-wrap;display:none}
+  .result-box.show{display:block}
+  .result-box.error{border-color:#F1B4B4;background:var(--red-bg);color:var(--red-ink)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap navbar">
+    <a href="#main" class="brand"><span class="brand-mark mono">[//]</span>Creator Script Safe</a>
+    <nav class="links">
+      <a href="#workflow" data-i18n="navWorkflow"></a>
+      <a href="#use-cases" data-i18n="navUseCases"></a>
+      <a href="#note" data-i18n="navAbout"></a>
+    </nav>
+    <div class="navright">
+      <div class="langswitch mono">
+        <button type="button" data-lang="zh">简体中文</button>
+        <button type="button" data-lang="en">EN</button>
+        <button type="button" data-lang="es">ES</button>
+      </div>
+      <button type="button" class="btn-primary js-open-modal" data-i18n="ctaCheck"></button>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <p class="eyebrow mono" data-i18n="heroEyebrow"></p>
+        <h1><span data-i18n="heroTitle"></span><span class="css-blink"></span></h1>
+        <p class="hero-desc" data-i18n="heroDesc"></p>
+        <button type="button" class="btn-primary js-open-modal" style="margin-top:32px" data-i18n="ctaCheck"></button>
+      </div>
+
+      <div class="mockup">
+        <div class="mockup-tabs">
+          <button type="button" class="tab-review active" data-tab="review" data-i18n="tabReviewLabel"></button>
+          <button type="button" class="tab-create" data-tab="create" data-i18n="tabCreateLabel"></button>
+        </div>
+        <div class="mockup-body">
+          <div class="panel active" data-panel="review">
+            <div class="panel-head">
+              <span class="fname mono" data-i18n="mockupFilename"></span>
+              <span class="flagpill mono"><span class="dot" style="background:#EAB308"></span><span data-i18n="mockupFlags"></span></span>
+            </div>
+            <div class="review-cols">
+              <div class="review-col left">
+                <p class="colhead mono" data-i18n="originalLabel"></p>
+                <div class="flagline" style="margin-bottom:16px">
+                  <p><span class="lnum mono">L12</span><span data-i18n="l12Pre"></span> <span class="hl-amber" data-i18n="l12Mid"></span><span data-i18n="l12Post"></span></p>
+                  <span class="badge badge-amber mono" data-i18n="l12Badge"></span>
+                </div>
+                <div class="flagline">
+                  <p><span class="lnum mono">L14</span><span data-i18n="l14Pre"></span> <span class="hl-red" data-i18n="l14Mid"></span><span data-i18n="l14Post"></span></p>
+                  <span class="badge badge-red mono" data-i18n="l14Badge"></span>
+                </div>
+              </div>
+              <div class="review-col right">
+                <p class="colhead mono" data-i18n="rewriteLabel"></p>
+                <div class="rewrite-block">
+                  <p data-i18n="rewrite1"></p>
+                  <div class="rewrite-meta">
+                    <span class="badge badge-green mono" data-i18n="safeBadge"></span>
+                    <button type="button" class="copylink mono js-copy" data-copy-key="rewrite1" data-btn-key="copyButtonText1"></button>
+                  </div>
+                </div>
+                <div class="rewrite-block" style="margin-bottom:0">
+                  <p data-i18n="rewrite2"></p>
+                  <div class="rewrite-meta">
+                    <span class="badge badge-green mono" data-i18n="safeBadge"></span>
+                    <button type="button" class="copylink mono js-copy" data-copy-key="rewrite2" data-btn-key="copyButtonText2"></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel" data-panel="create">
+            <div class="panel-head">
+              <span class="fname mono" data-i18n="createFilename"></span>
+              <span class="flagpill mono" style="color:var(--green-ink)"><span class="dot" style="background:#16A34A"></span><span data-i18n="createBadge"></span></span>
+            </div>
+            <div class="create-panel-body">
+              <p class="colhead mono" data-i18n="createInputLabel"></p>
+              <p data-i18n="createInputText"></p>
+              <div class="arrow-row mono"><span data-i18n="createArrow"></span></div>
+              <p class="colhead mono" data-i18n="createOutputLabel"></p>
+              <p data-i18n="createOutputText"></p>
+              <div class="create-note-row">
+                <span class="badge badge-green mono" data-i18n="safeBadge"></span>
+                <span class="note" data-i18n="createNote"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="workflow">
+    <div class="wrap section-pad">
+      <p class="eyebrow mono" data-i18n="workflowEyebrow"></p>
+      <h2 data-i18n="workflowHeading"></h2>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num mono">L01</div>
+          <div class="step-inner">
+            <div>
+              <h3 data-i18n="l01Title"></h3>
+              <p class="desc" data-i18n="l01Desc"></p>
+            </div>
+            <div class="tagrow">
+              <span class="tag mono" data-i18n="tagHooks"></span>
+              <span class="tag mono" data-i18n="tagCaptions"></span>
+              <span class="tag mono" data-i18n="tagTalkingPoints"></span>
+              <span class="tag mono" data-i18n="tagClaims"></span>
+              <span class="tag mono" data-i18n="tagCtas"></span>
+              <span class="tag mono" data-i18n="tagQa"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num mono">L02</div>
+          <div class="step-inner center">
+            <div>
+              <h3 data-i18n="genTitle"></h3>
+              <p class="desc" data-i18n="genDesc"></p>
+            </div>
+            <div class="demo-card">
+              <p data-i18n="genInput"></p>
+              <div class="arrow-row mono"><span data-i18n="genArrow"></span></div>
+              <p class="out" data-i18n="genOutput"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num mono">L03</div>
+          <div class="step-inner center">
+            <div>
+              <h3 data-i18n="l02Title"></h3>
+              <p class="desc" data-i18n="l02Desc"></p>
+            </div>
+            <div class="demo-card">
+              <p><span class="hl-red" data-i18n="l02Original"></span></p>
+              <div class="arrow-row mono"><span data-i18n="rewrittenArrow"></span></div>
+              <p class="out" data-i18n="l02Rewritten"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num mono">L04</div>
+          <div class="step-inner">
+            <div>
+              <h3 data-i18n="l03Title"></h3>
+              <p class="desc" data-i18n="l03Desc"></p>
+            </div>
+            <div class="grid4">
+              <div class="minicard"><p class="t mono" style="color:var(--green-ink)" data-i18n="phraseBankTitle"></p><p class="d" data-i18n="phraseBankDesc"></p></div>
+              <div class="minicard"><p class="t mono" style="color:var(--red-ink)" data-i18n="avoidListTitle"></p><p class="d" data-i18n="avoidListDesc"></p></div>
+              <div class="minicard"><p class="t mono" style="color:var(--teal)" data-i18n="backupTitle"></p><p class="d" data-i18n="backupDesc"></p></div>
+              <div class="minicard"><p class="t mono" style="color:var(--amber-ink)" data-i18n="recoveryTitle"></p><p class="d" data-i18n="recoveryDesc"></p></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num mono">L05</div>
+          <div class="step-inner center">
+            <div>
+              <h3 data-i18n="l04Title"></h3>
+              <p class="desc" data-i18n="l04Desc"></p>
+              <button type="button" class="btn-outline js-copy-static" data-copy-text="Review exported." data-btn-key="l04Button"></button>
+            </div>
+            <ul class="bullets">
+              <li data-i18n="l04li1"></li>
+              <li data-i18n="l04li2"></li>
+              <li data-i18n="l04li3"></li>
+              <li data-i18n="l04li4"></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="use-cases">
+    <div class="wrap section-pad">
+      <p class="eyebrow mono" data-i18n="useCasesEyebrow"></p>
+      <h2 data-i18n="useCasesHeading" style="max-width:36ch"></h2>
+      <div class="uc-grid">
+        <div class="uc-card"><h3 data-i18n="uc1Title"></h3><p data-i18n="uc1Desc"></p></div>
+        <div class="uc-card"><h3 data-i18n="uc2Title"></h3><p data-i18n="uc2Desc"></p></div>
+        <div class="uc-card"><h3 data-i18n="uc3Title"></h3><p data-i18n="uc3Desc"></p></div>
+        <div class="uc-card"><h3 data-i18n="uc4Title"></h3><p data-i18n="uc4Desc"></p></div>
+        <div class="uc-card"><h3 data-i18n="uc5Title"></h3><p data-i18n="uc5Desc"></p></div>
+        <div class="uc-card"><h3 data-i18n="uc6Title"></h3><p data-i18n="uc6Desc"></p></div>
+        <div class="uc-card"><h3 data-i18n="uc7Title"></h3><p data-i18n="uc7Desc"></p></div>
+        <div class="uc-card"><h3 data-i18n="uc8Title"></h3><p data-i18n="uc8Desc"></p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="note">
+    <div class="wrap" style="padding:56px 24px 64px">
+      <div class="disclaimer-box">
+        <p class="eyebrow mono" style="margin-bottom:8px" data-i18n="disclaimerEyebrow"></p>
+        <p class="txt" data-i18n="disclaimerText"></p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="footwrap">
+    <div class="foot-brand mono"><span class="brand-mark mono">[//]</span>Creator Script Safe</div>
+    <p class="foottag" data-i18n="footerTagline"></p>
+    <p class="foottag mono">© 2026</p>
+  </div>
+</footer>
+
+<!-- ============ Create / Review Modal ============ -->
+<div class="modal-overlay" id="csModalOverlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="csModalTitle">
+    <div class="modal-head">
+      <h3 id="csModalTitle" data-i18n="ctaCheck"></h3>
+      <button type="button" class="modal-close" id="csModalClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <label for="csModalTextarea" data-i18n="modalLabel"></label>
+      <textarea id="csModalTextarea" data-i18n-placeholder="modalPlaceholder"></textarea>
+      <p class="modal-hint" data-i18n="modalHint"></p>
+      <div class="result-box" id="csResultBox"></div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn-ghost" id="csModalCancel" data-i18n="modalCancel"></button>
+      <button type="button" class="btn-submit" id="csModalSubmit">
+        <span class="spinner" id="csSpinner"></span>
+        <span id="csSubmitLabel" data-i18n="modalSubmit"></span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   BACKEND CONFIG — fill this in with your real API details
+   ============================================================ */
+const CONFIG = {
+  apiUrl: '/api/creator-safety/check',
+  apiKey: '',
+};
+
+/* ============================================================
+   Translations (unchanged from the original design)
+   ============================================================ */
+const TRANSLATIONS = {
+  en: {
+    navWorkflow: 'Workflow', navUseCases: 'Use cases', navAbout: 'About & disclaimer',
+    ctaCheck: 'Create or Review', ctaExample: 'See Example Review', ctaCreateExample: 'See Create Example',
+    heroEyebrow: 'Before you publish, after a warning',
+    heroTitle: 'Catch risky wording before you publish — or fix it fast after a warning',
+    heroDesc: "Creator Script Safe helps creators spot high-risk phrasing before publishing, and quickly review, rewrite, and fix scripts after a platform warning — reducing avoidable wording mistakes that lead to reduced reach, content takedowns, account warnings or bans, and unfair flags.",
+    createFilename: 'vague-idea.txt — generated', createBadge: 'Compliant draft',
+    createInputLabel: 'Your idea', createInputText: "Something about my morning routine.",
+    createArrow: '↓ generated', createOutputLabel: 'Generated script',
+    createOutputText: "Here's a peek at my morning routine — a few small habits that work for me. Everyone's routine looks different.",
+    createNote: 'Low-risk lifestyle content, but avoid absolute health claims, judgmental language, hidden sponsorships, and private location details.',
+    tabReviewLabel: 'Review Example', tabCreateLabel: 'Create Example',
+    mockupFilename: 'live-commerce-script.txt — reviewed', mockupFlags: '2 flags',
+    originalLabel: 'Original script', rewriteLabel: 'Suggested rewrite',
+    l12Pre: 'Use code SAVE50 —', l12Mid: "only 10 left, don't miss out", l12Post: '!',
+    l12Badge: 'Review — unverifiable scarcity claim',
+    l14Pre: 'This serum', l14Mid: 'guarantees whiter skin in 3 days', l14Post: '.',
+    l14Badge: 'High risk — absolute outcome claim',
+    rewrite1: 'Use code SAVE50 — limited-time offer, while supplies last.',
+    rewrite2: 'Designed to support a brighter-looking appearance. Results may vary.',
+    safeBadge: 'Safe', copyButtonText1: 'Copy Suggested Line', copyButtonText2: 'Copy Suggested Line',
+    workflowEyebrow: 'The workflow',
+    workflowHeading: "From first draft to after you go live, read the same way you'd mark up a script.",
+    l01Title: 'Script Risk Review',
+    l01Desc: "Reads your draft the way a platform's audience — and its reviewers — actually would, and flags wording worth a second look before you record.",
+    tagHooks: 'Hooks', tagCaptions: 'Captions', tagTalkingPoints: 'Livestream talking points', tagClaims: 'Product claims', tagCtas: 'CTAs', tagQa: 'Q&A',
+    genTitle: 'Idea-to-Script Generation',
+    genDesc: "Start from a vague concept — a product, a trend, a mood — and generate a first draft written to Social Media Content Safety standards from the start.",
+    genInput: 'Vague idea: something about my morning routine',
+    genArrow: '↓ generated',
+    genOutput: "Here's a peek at my morning routine — small habits that work for me. Everyone's routine looks different.",
+    l02Title: 'Rewrite Safely',
+    l02Desc: "Not just a flag — a line you can say on camera. Every rewrite keeps your voice and your conversion intent.",
+    l02Original: 'This routine erases wrinkles overnight.',
+    rewrittenArrow: '↓ rewritten',
+    l02Rewritten: 'This routine is designed to support visibly smoother-looking skin over time.',
+    l03Title: 'Generate Live Brief',
+    l03Desc: "A one-page brief generated before you go live, so you're not improvising your riskiest answers in the moment.",
+    phraseBankTitle: 'Phrase bank', phraseBankDesc: 'Pre-cleared lines to reach for',
+    avoidListTitle: 'Avoid list', avoidListDesc: 'Words to steer around tonight',
+    backupTitle: 'Backup answers', backupDesc: "For questions you'd rather not freestyle",
+    recoveryTitle: 'Recovery phrases', recoveryDesc: 'If a line slips out wrong',
+    l04Title: 'Post-live Review',
+    l04Desc: "After you're off air, see what came up and build a phrase library that's specific to you, stream after stream.",
+    l04Button: 'Explore More',
+    l04li1: 'Risk timeline across the stream', l04li2: 'Repeated risky patterns', l04li3: 'Your own phrase library', l04li4: 'Recommendations for next time',
+    useCasesEyebrow: "Who it's for",
+    useCasesHeading: 'Wherever creators talk about outcomes, claims, and money.',
+    uc1Title: 'Beauty & skincare', uc1Desc: 'Before-and-after claims, ingredient promises, results timelines.',
+    uc2Title: 'Health & wellness', uc2Desc: 'Supplement talk, symptom language, wellness routines.',
+    uc3Title: 'Fitness & weight control', uc3Desc: 'Transformation claims and program guarantees.',
+    uc4Title: 'Live commerce', uc4Desc: 'Scarcity, pricing, and product-claim language under time pressure.',
+    uc5Title: 'Education', uc5Desc: 'Income mentions and outcome-based course pitches.',
+    uc6Title: 'Finance & investing', uc6Desc: 'Return promises and language that reads as advice.',
+    uc7Title: 'Food & lifestyle', uc7Desc: 'Health claims in recipes, product placements, and everyday lifestyle content.',
+    uc8Title: 'Gaming & music', uc8Desc: 'Copyrighted clips, licensed music, and IP-sensitive references.',
+    disclaimerEyebrow: 'Production note',
+    disclaimerText: 'Creator Script Safe is an independent writing and review assistant. It is not affiliated with TikTok, YouTube, Instagram, Meta, Google, or ByteDance. It does not guarantee approval, monetization, reach, or compliance outcomes — it helps you spot and rewrite risky wording before you publish.',
+    footerTagline: 'Independent writing assistant, not affiliated with any platform. No guaranteed approval, reach, or compliance outcomes.',
+    modalLabel: 'Your idea, or the script you want reviewed',
+    modalPlaceholder: 'Paste your script to review, or describe the idea you want turned into a script…',
+    modalHint: 'Works for both: a rough idea to turn into a script, or a finished script to check for risky wording.',
+    modalCancel: 'Cancel',
+    modalSubmit: 'Submit',
+    modalSubmitting: 'Working…',
+    modalErrorEmpty: 'Please enter some text first.',
+    modalErrorNetwork: 'Something went wrong reaching the server. Please try again.',
+  },
+  zh: {
+    navWorkflow: '工作流程', navUseCases: '适用场景', navAbout: '关于与免责声明',
+    ctaCheck: '检查或创建脚本', ctaExample: '查看示例审查', ctaCreateExample: '查看创建示例',
+    heroEyebrow: '发布前预警，警告后快速修复',
+    heroTitle: '发布前识别风险话术，收到警告后快速复盘改写',
+    heroDesc: 'Creator Script Safe 帮助创作者在发布前识别高风险表达，或在收到平台警告后快速复盘、改写和修正脚本，减少因可避免的话术问题导致的流量推荐受限、内容下架、账户警告或封禁，以及误判申诉。',
+    createFilename: '模糊想法.txt — 已生成', createBadge: '合规草稿',
+    createInputLabel: '你的想法', createInputText: '想分享一下我的晨间routine。',
+    createArrow: '↓ 生成', createOutputLabel: '生成的脚本',
+    createOutputText: '分享一下我的晨间安排——这些是对我有效的小习惯，每个人的情况都不一样。',
+    createNote: '低风险的生活方式内容，但要避免绝对化的健康说法、评判性语言、隐性广告合作以及私人地点信息。',
+    tabReviewLabel: '审查示例', tabCreateLabel: '创建示例',
+    mockupFilename: 'live-commerce-script.txt — 已审查', mockupFlags: '2 处标记',
+    originalLabel: '原始脚本', rewriteLabel: '建议改写',
+    l12Pre: '使用优惠码 SAVE50 ——', l12Mid: '仅剩10件，不要错过', l12Post: '！',
+    l12Badge: '需审查 — 无法核实的稀缺性说法',
+    l14Pre: '这款精华', l14Mid: '保证3天美白', l14Post: '。',
+    l14Badge: '高风险 — 绝对性效果承诺',
+    rewrite1: '使用优惠码 SAVE50 —— 限时优惠，库存有限，先到先得。',
+    rewrite2: '旨在改善肤色外观。效果因人而异。',
+    safeBadge: '安全', copyButtonText1: '复制建议台词', copyButtonText2: '复制建议台词',
+    workflowEyebrow: '工作流程',
+    workflowHeading: '从初稿到下播之后，像标注剧本一样阅读你的脚本。',
+    l01Title: '脚本风险审查',
+    l01Desc: '像平台观众——以及平台审核方——真正会做的那样阅读你的初稿，在你录制前标出值得再想一想的措辞。',
+    tagHooks: '开场钩子', tagCaptions: '字幕文案', tagTalkingPoints: '直播话术要点', tagClaims: '产品声明', tagCtas: '行动号召', tagQa: '问答回复',
+    genTitle: '创意生成',
+    genDesc: '从一个模糊的创作想法出发——一个产品、一个热点、一种情绪——直接生成符合社交媒体内容安全规范（Social Media Content Safety）的初稿文案。',
+    genInput: '模糊想法：想分享一下我的晨间routine',
+    genArrow: '↓ 生成',
+    genOutput: '分享一下我的晨间安排——这些是对我有效的小习惯，每个人的情况都不一样。',
+    l02Title: '更安全的改写',
+    l02Desc: '不只是标记——而是一句你能对着镜头说出口的台词。每次改写都保留你的语气和转化意图。',
+    l02Original: '这套护理能让皱纹一夜消失。',
+    rewrittenArrow: '↓ 改写后',
+    l02Rewritten: '这套护理旨在长期支持肌肤呈现更平滑的视觉效果。',
+    l03Title: '直播简报',
+    l03Desc: '在你开播前生成的一页式简报，让你不用在直播现场即兴回答最有风险的问题。',
+    phraseBankTitle: '话术库', phraseBankDesc: '可直接使用的预审台词',
+    avoidListTitle: '规避清单', avoidListDesc: '今晚应避开的词语',
+    backupTitle: '备用答案', backupDesc: '不想临场发挥时使用',
+    recoveryTitle: '补救话术', recoveryDesc: '如果说漏了嘴',
+    l04Title: '下播后复盘',
+    l04Desc: '下播后，回顾直播中出现的问题，逐场建立属于你自己的专属话术库。',
+    l04Button: '导出复盘报告',
+    l04li1: '整场直播的风险时间线', l04li2: '反复出现的风险模式', l04li3: '你自己的话术库', l04li4: '下次直播的改进建议',
+    useCasesEyebrow: '适用人群',
+    useCasesHeading: '只要创作者谈到效果、承诺和金钱，就用得上。',
+    uc1Title: '美妆护肤', uc1Desc: '前后对比说法、成分承诺、效果时间线。',
+    uc2Title: '健康与养生', uc2Desc: '保健品话术、症状用语、养生routine。',
+    uc3Title: '健身与体重管理', uc3Desc: '蜕变承诺与课程效果保证。',
+    uc4Title: '直播电商', uc4Desc: '限时抢购、定价与紧迫感下的产品说法。',
+    uc5Title: '教育与副业', uc5Desc: '收入提及与以效果为卖点的课程话术。',
+    uc6Title: '金融与投资', uc6Desc: '回报承诺以及可能被视为建议的表述。',
+    uc7Title: '食品与生活', uc7Desc: '食谱中的健康说法、产品植入与日常生活内容。',
+    uc8Title: '游戏与音乐', uc8Desc: '涉及版权片段、授权音乐与知识产权敏感内容的引用。',
+    disclaimerEyebrow: '制作说明',
+    disclaimerText: 'Creator Script Safe 是一款独立的写作与审查辅助工具，与 TikTok、YouTube、Instagram、Meta、Google 或字节跳动均无关联。它不保证审核通过、流量变现、曝光或合规结果——它只是帮助你在发布前发现并改写有风险的措辞。',
+    footerTagline: '独立写作辅助工具，与任何平台均无关联。不保证审核通过、曝光或合规结果。',
+    modalLabel: '你的创作想法，或想要审核的脚本内容',
+    modalPlaceholder: '粘贴想要审核的脚本，或描述你想生成脚本的想法……',
+    modalHint: '两种情况都可以：一个想要变成脚本的模糊想法，或一份想要检查风险话术的完整脚本。',
+    modalCancel: '取消',
+    modalSubmit: '提交',
+    modalSubmitting: '处理中…',
+    modalErrorEmpty: '请先输入内容。',
+    modalErrorNetwork: '连接服务器时出了点问题，请重试。',
+  },
+  es: {
+    navWorkflow: 'Flujo de trabajo', navUseCases: 'Casos de uso', navAbout: 'Acerca de y descargo',
+    ctaCheck: 'Revisar o crear un guion', ctaExample: 'Ver ejemplo de revisión', ctaCreateExample: 'Ver ejemplo de creación',
+    heroEyebrow: 'Antes de publicar, después de una advertencia',
+    heroTitle: 'Detecta frases de riesgo antes de publicar, o corrígelas rápido tras una advertencia',
+    heroDesc: 'Creator Script Safe ayuda a los creadores a identificar frases de alto riesgo antes de publicar, y a revisar, reescribir y corregir guiones rápidamente después de recibir una advertencia de la plataforma, reduciendo errores evitables que provocan menor alcance, eliminación de contenido, advertencias o suspensión de cuenta, y señalizaciones injustas.',
+    createFilename: 'idea-vaga.txt — generado', createBadge: 'Borrador conforme',
+    createInputLabel: 'Tu idea', createInputText: 'Algo sobre mi rutina matutina.',
+    createArrow: '↓ generado', createOutputLabel: 'Guion generado',
+    createOutputText: 'Así es mi rutina matutina: pequeños hábitos que me funcionan a mí. Cada rutina es diferente.',
+    createNote: 'Contenido de estilo de vida de bajo riesgo, pero evita afirmaciones de salud absolutas, lenguaje que juzga, patrocinios ocultos y detalles de ubicación privados.',
+    tabReviewLabel: 'Ejemplo: revisión', tabCreateLabel: 'Ejemplo: creación',
+    mockupFilename: 'live-commerce-script.txt — revisado', mockupFlags: '2 alertas',
+    originalLabel: 'Guion original', rewriteLabel: 'Reescritura sugerida',
+    l12Pre: 'Usa el código SAVE50 —', l12Mid: 'solo quedan 10, no te lo pierdas', l12Post: '!',
+    l12Badge: 'Revisar — afirmación de escasez no verificable',
+    l14Pre: 'Este sérum', l14Mid: 'garantiza piel más blanca en 3 días', l14Post: '.',
+    l14Badge: 'Alto riesgo — promesa de resultado absoluto',
+    rewrite1: 'Usa el código SAVE50 — oferta por tiempo limitado, mientras duren existencias.',
+    rewrite2: 'Diseñado para ayudar a lucir un tono de piel más luminoso. Los resultados pueden variar.',
+    safeBadge: 'Seguro', copyButtonText1: 'Copiar línea sugerida', copyButtonText2: 'Copiar línea sugerida',
+    workflowEyebrow: 'El flujo de trabajo',
+    workflowHeading: 'Desde el primer borrador hasta después de salir en vivo, léelo como si marcaras un guion.',
+    l01Title: 'Revisión de riesgo del guion',
+    l01Desc: 'Lee tu borrador como realmente lo haría la audiencia de una plataforma —y sus revisores— y señala frases que vale la pena reconsiderar antes de grabar.',
+    tagHooks: 'Ganchos', tagCaptions: 'Subtítulos', tagTalkingPoints: 'Puntos para en vivo', tagClaims: 'Afirmaciones de producto', tagCtas: 'Llamadas a la acción', tagQa: 'Respuestas de preguntas',
+    genTitle: 'Generación de guion desde una idea',
+    genDesc: 'Parte de un concepto vago —un producto, una tendencia, un estado de ánimo— y genera un primer borrador redactado desde el inicio conforme a los estándares de Social Media Content Safety.',
+    genInput: 'Idea vaga: algo sobre mi rutina matutina',
+    genArrow: '↓ generado',
+    genOutput: 'Así es mi rutina matutina: pequeños hábitos que me funcionan a mí. Cada rutina es diferente.',
+    l02Title: 'Reescritura más segura',
+    l02Desc: 'No solo una alerta: una línea que puedes decir frente a cámara. Cada reescritura conserva tu voz y tu intención de conversión.',
+    l02Original: 'Esta rutina borra las arrugas de la noche a la mañana.',
+    rewrittenArrow: '↓ reescrito',
+    l02Rewritten: 'Esta rutina está diseñada para ayudar a lucir una piel visiblemente más tersa con el tiempo.',
+    l03Title: 'Resumen para en vivo',
+    l03Desc: 'Un resumen de una página generado antes de salir en vivo, para que no improvises tus respuestas más arriesgadas en el momento.',
+    phraseBankTitle: 'Banco de frases', phraseBankDesc: 'Líneas ya aprobadas para usar',
+    avoidListTitle: 'Lista de evitar', avoidListDesc: 'Palabras que conviene evitar esta noche',
+    backupTitle: 'Respuestas de respaldo', backupDesc: 'Para preguntas que prefieres no improvisar',
+    recoveryTitle: 'Frases de recuperación', recoveryDesc: 'Si se te escapa una frase equivocada',
+    l04Title: 'Revisión posterior al en vivo',
+    l04Desc: 'Después de salir del aire, revisa lo que ocurrió y construye una biblioteca de frases propia, transmisión tras transmisión.',
+    l04Button: 'Exportar revisión',
+    l04li1: 'Línea de tiempo de riesgo de la transmisión', l04li2: 'Patrones de riesgo repetidos', l04li3: 'Tu propia biblioteca de frases', l04li4: 'Recomendaciones para la próxima vez',
+    useCasesEyebrow: 'Para quién es',
+    useCasesHeading: 'Donde sea que los creadores hablen de resultados, afirmaciones y dinero.',
+    uc1Title: 'Belleza y cuidado de la piel', uc1Desc: 'Afirmaciones de antes y después, promesas de ingredientes, plazos de resultados.',
+    uc2Title: 'Salud y bienestar', uc2Desc: 'Suplementos, lenguaje de síntomas, rutinas de bienestar.',
+    uc3Title: 'Fitness y control de peso', uc3Desc: 'Afirmaciones de transformación y garantías de programas.',
+    uc4Title: 'Comercio en vivo', uc4Desc: 'Escasez, precios y afirmaciones de producto bajo presión de tiempo.',
+    uc5Title: 'Educación y negocios paralelos', uc5Desc: 'Menciones de ingresos y promociones de cursos basadas en resultados.',
+    uc6Title: 'Finanzas e inversión', uc6Desc: 'Promesas de retorno y lenguaje que se lee como asesoría.',
+    uc7Title: 'Comida y estilo de vida', uc7Desc: 'Afirmaciones de salud en recetas, colocación de productos y contenido cotidiano.',
+    uc8Title: 'Videojuegos y música', uc8Desc: 'Clips con derechos de autor, música con licencia y referencias sensibles a la propiedad intelectual.',
+    disclaimerEyebrow: 'Nota de producción',
+    disclaimerText: 'Creator Script Safe es un asistente independiente de escritura y revisión. No está afiliado a TikTok, YouTube, Instagram, Meta, Google ni ByteDance. No garantiza aprobación, monetización, alcance ni resultados de cumplimiento normativo: te ayuda a detectar y reescribir frases riesgosas antes de publicar.',
+    footerTagline: 'Asistente de escritura independiente, no afiliado a ninguna plataforma. Sin aprobación, alcance ni cumplimiento garantizados.',
+    modalLabel: 'Tu idea, o el guion que quieres revisar',
+    modalPlaceholder: 'Pega el guion a revisar, o describe la idea que quieres convertir en guion…',
+    modalHint: 'Sirve para ambos casos: una idea vaga para convertir en guion, o un guion terminado para revisar frases de riesgo.',
+    modalCancel: 'Cancelar',
+    modalSubmit: 'Enviar',
+    modalSubmitting: 'Procesando…',
+    modalErrorEmpty: 'Por favor escribe algo primero.',
+    modalErrorNetwork: 'Hubo un problema al conectar con el servidor. Inténtalo de nuevo.',
+  },
+};
+
+/* ============================================================
+   i18n rendering
+   ============================================================ */
+let currentLang = 'en';
+
+function applyLang(lang){
+  currentLang = lang;
+  const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
+  document.documentElement.lang = lang;
+
+  document.querySelectorAll('[data-i18n]').forEach(function(el){
+    const key = el.getAttribute('data-i18n');
+    if (t[key] !== undefined) el.textContent = t[key];
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(function(el){
+    const key = el.getAttribute('data-i18n-placeholder');
+    if (t[key] !== undefined) el.setAttribute('placeholder', t[key]);
+  });
+  document.querySelectorAll('.js-copy').forEach(function(el){
+    const btnKey = el.getAttribute('data-btn-key');
+    if (t[btnKey] !== undefined) el.textContent = t[btnKey];
+  });
+  document.querySelectorAll('.js-copy-static').forEach(function(el){
+    const btnKey = el.getAttribute('data-btn-key');
+    if (t[btnKey] !== undefined) el.textContent = t[btnKey];
+  });
+
+  document.querySelectorAll('.langswitch button').forEach(function(btn){
+    btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
+  });
+}
+
+document.querySelectorAll('.langswitch button').forEach(function(btn){
+  btn.addEventListener('click', function(){ applyLang(btn.getAttribute('data-lang')); });
+});
+
+/* ============================================================
+   Mockup tab switching
+   ============================================================ */
+document.querySelectorAll('.mockup-tabs button').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    const which = btn.getAttribute('data-tab');
+    document.querySelectorAll('.mockup-tabs button').forEach(function(b){ b.classList.toggle('active', b === btn); });
+    document.querySelectorAll('.panel').forEach(function(p){ p.classList.toggle('active', p.getAttribute('data-panel') === which); });
+  });
+});
+
+/* ============================================================
+   Copy-to-clipboard buttons
+   ============================================================ */
+function flashCopied(el, btnKey){
+  const original = TRANSLATIONS[currentLang][btnKey] || TRANSLATIONS.en[btnKey];
+  el.textContent = 'Copied';
+  setTimeout(function(){ el.textContent = original; }, 1400);
+}
+document.querySelectorAll('.js-copy').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    const key = btn.getAttribute('data-copy-key');
+    const text = TRANSLATIONS.en[key];
+    if (navigator.clipboard) navigator.clipboard.writeText(text).catch(function(){});
+    flashCopied(btn, btn.getAttribute('data-btn-key'));
+  });
+});
+document.querySelectorAll('.js-copy-static').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    const text = btn.getAttribute('data-copy-text');
+    if (navigator.clipboard) navigator.clipboard.writeText(text).catch(function(){});
+    flashCopied(btn, btn.getAttribute('data-btn-key'));
+  });
+});
+
+/* ============================================================
+   Create / Review modal
+   ============================================================ */
+const overlay = document.getElementById('csModalOverlay');
+const textarea = document.getElementById('csModalTextarea');
+const resultBox = document.getElementById('csResultBox');
+const submitBtn = document.getElementById('csModalSubmit');
+const submitLabel = document.getElementById('csSubmitLabel');
+const spinner = document.getElementById('csSpinner');
+
+function openModal(){
+  overlay.classList.add('open');
+  resultBox.classList.remove('show', 'error');
+  resultBox.textContent = '';
+  textarea.value = '';
+  document.body.style.overflow = 'hidden';
+  setTimeout(function(){ textarea.focus(); }, 50);
+}
+function closeModal(){
+  overlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.querySelectorAll('.js-open-modal').forEach(function(btn){
+  btn.addEventListener('click', openModal);
+});
+document.getElementById('csModalClose').addEventListener('click', closeModal);
+document.getElementById('csModalCancel').addEventListener('click', closeModal);
+overlay.addEventListener('click', function(e){ if (e.target === overlay) closeModal(); });
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && overlay.classList.contains('open')) closeModal(); });
+
+async function submitToBackend(){
+  const t = TRANSLATIONS[currentLang];
+  const text = textarea.value.trim();
+
+  resultBox.classList.remove('show', 'error');
+
+  if (!text){
+    resultBox.textContent = t.modalErrorEmpty;
+    resultBox.classList.add('show', 'error');
+    return;
+  }
+
+  submitBtn.disabled = true;
+  spinner.classList.add('show');
+  submitLabel.textContent = t.modalSubmitting;
+
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (CONFIG.apiKey) headers['Authorization'] = 'Bearer ' + CONFIG.apiKey;
+
+    const body = {
+      script: text,
+      metadata: {
+        platform: 'tiktok',
+        surface: 'short_video',
+        market: 'US',
+        language: currentLang === 'zh' ? 'zh-CN' : currentLang,
+        category: 'beauty',
+        commerce: true,
+        sponsorship: null,
+        claim_evidence: null,
+        audience_age: ''
+      },
+      force_full_review: false,
+      auto_rewrite: true
+    };
+
+    const res = await fetch(CONFIG.apiUrl, {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+
+    const data = await res.json();
+    const output = formatWorkflowResult(data);
+
+    resultBox.textContent = output;
+    resultBox.classList.add('show');
+  } catch (err) {
+    console.error('[Creator Script Safe] request failed:', err);
+    resultBox.textContent = t.modalErrorNetwork;
+    resultBox.classList.add('show', 'error');
+  } finally {
+    submitBtn.disabled = false;
+    spinner.classList.remove('show');
+    submitLabel.textContent = t.modalSubmit;
+  }
+}
+
+submitBtn.addEventListener('click', submitToBackend);
+
+function formatWorkflowResult(data){
+  if (!data || typeof data !== 'object') return String(data || '');
+
+  const lines = [];
+  lines.push('Decision: ' + (data.decision || 'unknown'));
+
+  if (data.layer1 && data.layer1.result) {
+    lines.push('Layer 1: ' + data.layer1.result);
+  }
+  if (data.layer2 && data.layer2.risk_level) {
+    lines.push('Layer 2: ' + data.layer2.risk_level + ' (' + data.layer2.routing + ')');
+  }
+  if (data.missing_context && data.missing_context.length) {
+    lines.push('Missing context: ' + data.missing_context.join(', '));
+  }
+  if (data.rewritten_text) {
+    lines.push('');
+    lines.push('Local rewrite:');
+    lines.push(data.rewritten_text);
+  }
+  if (data.response) {
+    lines.push('');
+    lines.push(data.response);
+  }
+  if (data.skill_handoff_prompt) {
+    lines.push('');
+    lines.push('Full review is recommended. The server generated a Skill handoff prompt.');
+  }
+
+  return lines.join('\n');
+}
+
+/* ============================================================
+   Init
+   ============================================================ */
+applyLang('en');
+</script>
+
+</body>
+</html>
