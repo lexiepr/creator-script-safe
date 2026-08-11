@@ -6,7 +6,7 @@ from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 LIB_PATH = PROJECT_ROOT / "lib"
 sys.path.insert(0, str(LIB_PATH))
 
