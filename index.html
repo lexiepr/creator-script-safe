@@ -795,6 +795,9 @@ function formatWorkflowResult(data){
   if (data.flagged_segments && data.flagged_segments.mode) {
     lines.push('Segments: ' + data.flagged_segments.segment_count + ' (' + data.flagged_segments.mode + ', savings ' + data.flagged_segments.estimated_char_savings_ratio + ')');
   }
+  if (data.cache) {
+    lines.push('Cache: ' + (data.cache.hit ? 'hit' : 'miss') + ' via ' + data.cache.backend);
+  }
   if (data.missing_context && data.missing_context.length) {
     lines.push('Missing context: ' + data.missing_context.join(', '));
   }
