@@ -783,6 +783,9 @@ function formatWorkflowResult(data){
   const lines = [];
   lines.push('Decision: ' + (data.decision || 'unknown'));
 
+  if (data.input_classification && data.input_classification.input_type) {
+    lines.push('Input: ' + data.input_classification.input_type + ' (' + data.input_classification.confidence + ')');
+  }
   if (data.layer1 && data.layer1.result) {
     lines.push('Layer 1: ' + data.layer1.result);
   }
