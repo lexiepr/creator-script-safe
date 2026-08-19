@@ -19,9 +19,11 @@ from pathlib import Path
 from typing import Any
 
 try:
+    from .input_classifier import IDEA, classify as classify_input
     from .layer1_machine_filter import check as layer1_check
     from .layer2_strategy_classifier import check as layer2_check
 except ImportError:
+    from input_classifier import IDEA, classify as classify_input
     from layer1_machine_filter import check as layer1_check
     from layer2_strategy_classifier import check as layer2_check
 
@@ -81,6 +83,35 @@ def build_skill_handoff(
     )
 
 
+def build_idea_handoff(
+    idea_text: str,
+    input_classification: dict[str, Any],
+    metadata: dict[str, Any],
+) -> str:
+    body = {
+        "metadata": metadata,
+        "input_classification": input_classification,
+        "requested_task": "Generate a safer creator script from a rough idea.",
+    }
+    return (
+        "Please use Creator Script Safe to generate a safer creator script from this idea.\n\n"
+        "Idea:\n"
+        f"{idea_text}\n\n"
+        "Local routing context:\n"
+        f"{json.dumps(body, ensure_ascii=False, indent=2)}\n\n"
+        "Use the standard output sections exactly:\n"
+        "Overall risk:\n"
+        "Category checks:\n"
+        "Risk findings:\n"
+        "Safer rewrites:\n"
+        "Final safer script:\n"
+        "Live brief:\n"
+        "Notes:\n\n"
+        "Use cautious, evidence-based wording. Do not guarantee platform approval, reach, "
+        "monetization, account safety, or warning removal."
+    )
+
+
 def decide(
     text: str,
     metadata: dict[str, Any] | None = None,
@@ -89,12 +120,26 @@ def decide(
     auto_rewrite: bool = True,
 ) -> dict[str, Any]:
     metadata = metadata or {}
+    input_classification = classify_input(text)
+
+    if input_classification["input_type"] == IDEA:
+        return {
+            "decision": CALL_SKILL,
+            "input_classification": input_classification,
+            "skill_handoff_prompt": build_idea_handoff(text, input_classification, metadata),
+            "response": (
+                "Input looks like an idea, not a finished script. "
+                "Skip Layer 1/2 and generate a safer script with Creator Script Safe."
+            ),
+        }
+
     layer1 = layer1_check(text)
 
     if layer1["result"] == "Refuse/redirect":
         layer2 = layer2_check(text, layer1=layer1, metadata=metadata, weights=weights)
         return {
             "decision": REFUSE_OR_REDIRECT,
+            "input_classification": input_classification,
             "layer1": layer1,
             "layer2": layer2,
             "response": (
@@ -123,6 +168,7 @@ def decide(
     if routing == "Needs more context":
         return {
             "decision": ASK_FOR_CONTEXT,
+            "input_classification": input_classification,
             "layer1": layer1,
             "layer1_after_rewrite": layer1_after_rewrite if local_rewrite_applied else None,
             "layer2": layer2,
@@ -133,6 +179,7 @@ def decide(
     if routing == "Refuse/redirect":
         return {
             "decision": REFUSE_OR_REDIRECT,
+            "input_classification": input_classification,
             "layer1": layer1,
             "layer1_after_rewrite": layer1_after_rewrite if local_rewrite_applied else None,
             "layer2": layer2,
@@ -142,6 +189,7 @@ def decide(
     if routing == "Cheap pass" and not force_full_review:
         return {
             "decision": FAST_LOCAL_RESPONSE,
+            "input_classification": input_classification,
             "layer1": layer1,
             "layer2": layer2,
             "response": (
@@ -153,6 +201,7 @@ def decide(
     if routing == "Rewrite first" and not force_full_review:
         return {
             "decision": REWRITE_LOCALLY_FIRST,
+            "input_classification": input_classification,
             "layer1": layer1,
             "layer1_after_rewrite": layer1_after_rewrite if local_rewrite_applied else None,
             "layer2": layer2,
@@ -162,6 +211,7 @@ def decide(
 
     return {
         "decision": CALL_SKILL,
+        "input_classification": input_classification,
         "layer1": layer1,
         "layer1_after_rewrite": layer1_after_rewrite if local_rewrite_applied else None,
         "layer2": layer2,
