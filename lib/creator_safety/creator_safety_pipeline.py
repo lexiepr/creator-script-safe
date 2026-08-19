@@ -19,11 +19,13 @@ from pathlib import Path
 from typing import Any
 
 try:
+    from .cache_manager import build_cache_key, cache_status, get_cached_result, set_cached_result
     from .input_classifier import IDEA, classify as classify_input
     from .layer1_machine_filter import check as layer1_check
     from .layer2_strategy_classifier import check as layer2_check
     from .segment_extractor import extract_flagged_segments
 except ImportError:
+    from cache_manager import build_cache_key, cache_status, get_cached_result, set_cached_result
     from input_classifier import IDEA, classify as classify_input
     from layer1_machine_filter import check as layer1_check
     from layer2_strategy_classifier import check as layer2_check
@@ -144,10 +146,21 @@ def decide(
     auto_rewrite: bool = True,
 ) -> dict[str, Any]:
     metadata = metadata or {}
+    cache_key = build_cache_key(
+        text,
+        metadata=metadata,
+        force_full_review=force_full_review,
+        auto_rewrite=auto_rewrite,
+    )
+    cached, cache_backend = get_cached_result(cache_key)
+    if cached:
+        cached["cache"] = cache_status(True, cache_key, cache_backend)
+        return cached
+
     input_classification = classify_input(text)
 
     if input_classification["input_type"] == IDEA:
-        return {
+        result = {
             "decision": CALL_SKILL,
             "input_classification": input_classification,
             "skill_handoff_prompt": build_idea_handoff(text, input_classification, metadata),
@@ -156,13 +169,16 @@ def decide(
                 "Skip Layer 1/2 and generate a safer script with Creator Script Safe."
             ),
         }
+        cache_backend = set_cached_result(cache_key, result)
+        result["cache"] = cache_status(False, cache_key, cache_backend)
+        return result
 
     layer1 = layer1_check(text)
     flagged_segments = extract_flagged_segments(text, layer1)
 
     if layer1["result"] == "Refuse/redirect":
         layer2 = layer2_check(text, layer1=layer1, metadata=metadata, weights=weights)
-        return {
+        result = {
             "decision": REFUSE_OR_REDIRECT,
             "input_classification": input_classification,
             "layer1": layer1,
@@ -174,6 +190,9 @@ def decide(
                 "privacy-preserving, evidence-based, or educational alternative."
             ),
         }
+        cache_backend = set_cached_result(cache_key, result)
+        result["cache"] = cache_status(False, cache_key, cache_backend)
+        return result
 
     working_text = text
     local_rewrite_applied = False
@@ -192,7 +211,7 @@ def decide(
     routing = layer2["routing"]
 
     if routing == "Needs more context":
-        return {
+        result = {
             "decision": ASK_FOR_CONTEXT,
             "input_classification": input_classification,
             "layer1": layer1,
@@ -202,9 +221,12 @@ def decide(
             "missing_context": layer2["missing_context"],
             "response": "Ask only for the missing context fields before running the full Skill.",
         }
+        cache_backend = set_cached_result(cache_key, result)
+        result["cache"] = cache_status(False, cache_key, cache_backend)
+        return result
 
     if routing == "Refuse/redirect":
-        return {
+        result = {
             "decision": REFUSE_OR_REDIRECT,
             "input_classification": input_classification,
             "layer1": layer1,
@@ -213,9 +235,12 @@ def decide(
             "layer2": layer2,
             "response": "Do not generate the unsafe request as written; redirect to a safer alternative.",
         }
+        cache_backend = set_cached_result(cache_key, result)
+        result["cache"] = cache_status(False, cache_key, cache_backend)
+        return result
 
     if routing == "Cheap pass" and not force_full_review:
-        return {
+        result = {
             "decision": FAST_LOCAL_RESPONSE,
             "input_classification": input_classification,
             "layer1": layer1,
@@ -226,9 +251,12 @@ def decide(
                 "This does not guarantee platform approval."
             ),
         }
+        cache_backend = set_cached_result(cache_key, result)
+        result["cache"] = cache_status(False, cache_key, cache_backend)
+        return result
 
     if routing == "Rewrite first" and not force_full_review:
-        return {
+        result = {
             "decision": REWRITE_LOCALLY_FIRST,
             "input_classification": input_classification,
             "layer1": layer1,
@@ -238,8 +266,11 @@ def decide(
             "rewritten_text": working_text,
             "response": "Rewrite flagged wording locally, re-run Layer 1 and Layer 2, then decide whether Skill review is needed.",
         }
+        cache_backend = set_cached_result(cache_key, result)
+        result["cache"] = cache_status(False, cache_key, cache_backend)
+        return result
 
-    return {
+    result = {
         "decision": CALL_SKILL,
         "input_classification": input_classification,
         "layer1": layer1,
@@ -257,6 +288,9 @@ def decide(
         ),
         "response": "Send the generated handoff prompt to creator-script-safe.",
     }
+    cache_backend = set_cached_result(cache_key, result)
+    result["cache"] = cache_status(False, cache_key, cache_backend)
+    return result
 
 
 def main() -> None:
