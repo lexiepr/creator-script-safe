@@ -22,10 +22,12 @@ try:
     from .input_classifier import IDEA, classify as classify_input
     from .layer1_machine_filter import check as layer1_check
     from .layer2_strategy_classifier import check as layer2_check
+    from .segment_extractor import extract_flagged_segments
 except ImportError:
     from input_classifier import IDEA, classify as classify_input
     from layer1_machine_filter import check as layer1_check
     from layer2_strategy_classifier import check as layer2_check
+    from segment_extractor import extract_flagged_segments
 
 
 FAST_LOCAL_RESPONSE = "fast_local_response"
@@ -60,20 +62,42 @@ def build_skill_handoff(
     layer2: dict[str, Any],
     metadata: dict[str, Any],
     rewritten_text: str | None = None,
+    flagged_segments: dict[str, Any] | None = None,
 ) -> str:
     body = {
         "metadata": metadata,
         "layer1_pre_screen": layer1,
         "layer2_strategy_classification": layer2,
     }
+    if flagged_segments:
+        body["flagged_segment_extraction"] = flagged_segments
+
     rewritten_section = ""
     if rewritten_text and rewritten_text != original_text:
         rewritten_section = f"\nLocally rewritten draft:\n{rewritten_text}\n"
 
+    if flagged_segments and flagged_segments.get("segments"):
+        segment_lines = []
+        for index, item in enumerate(flagged_segments["segments"], start=1):
+            reasons = ", ".join(
+                finding.get("rule_id", "unknown") for finding in item.get("findings", [])
+            )
+            segment_lines.append(
+                f"{index}. Reasons: {reasons}\n"
+                f"   Segment:\n"
+                f"   {item['segment']}"
+            )
+        review_target = (
+            "Flagged segments for token-efficient review:\n"
+            + "\n\n".join(segment_lines)
+            + "\n\nOnly review and rewrite the flagged segments unless full-script context is necessary.\n"
+        )
+    else:
+        review_target = "Original script:\n" f"{original_text}\n"
+
     return (
         "Please run Creator Script Safe full review.\n\n"
-        "Original script:\n"
-        f"{original_text}\n"
+        f"{review_target}"
         f"{rewritten_section}\n"
         "Local pre-screen context:\n"
         f"{json.dumps(body, ensure_ascii=False, indent=2)}\n\n"
@@ -134,6 +158,7 @@ def decide(
         }
 
     layer1 = layer1_check(text)
+    flagged_segments = extract_flagged_segments(text, layer1)
 
     if layer1["result"] == "Refuse/redirect":
         layer2 = layer2_check(text, layer1=layer1, metadata=metadata, weights=weights)
@@ -141,6 +166,7 @@ def decide(
             "decision": REFUSE_OR_REDIRECT,
             "input_classification": input_classification,
             "layer1": layer1,
+            "flagged_segments": flagged_segments,
             "layer2": layer2,
             "response": (
                 "Layer 1: Refuse/redirect. Layer 2: High. "
@@ -171,6 +197,7 @@ def decide(
             "input_classification": input_classification,
             "layer1": layer1,
             "layer1_after_rewrite": layer1_after_rewrite if local_rewrite_applied else None,
+            "flagged_segments": flagged_segments,
             "layer2": layer2,
             "missing_context": layer2["missing_context"],
             "response": "Ask only for the missing context fields before running the full Skill.",
@@ -182,6 +209,7 @@ def decide(
             "input_classification": input_classification,
             "layer1": layer1,
             "layer1_after_rewrite": layer1_after_rewrite if local_rewrite_applied else None,
+            "flagged_segments": flagged_segments,
             "layer2": layer2,
             "response": "Do not generate the unsafe request as written; redirect to a safer alternative.",
         }
@@ -191,6 +219,7 @@ def decide(
             "decision": FAST_LOCAL_RESPONSE,
             "input_classification": input_classification,
             "layer1": layer1,
+            "flagged_segments": flagged_segments,
             "layer2": layer2,
             "response": (
                 "Layer 1: Pass. Layer 2: Low. No obvious local pre-screen trigger found. "
@@ -204,6 +233,7 @@ def decide(
             "input_classification": input_classification,
             "layer1": layer1,
             "layer1_after_rewrite": layer1_after_rewrite if local_rewrite_applied else None,
+            "flagged_segments": flagged_segments,
             "layer2": layer2,
             "rewritten_text": working_text,
             "response": "Rewrite flagged wording locally, re-run Layer 1 and Layer 2, then decide whether Skill review is needed.",
@@ -214,9 +244,17 @@ def decide(
         "input_classification": input_classification,
         "layer1": layer1,
         "layer1_after_rewrite": layer1_after_rewrite if local_rewrite_applied else None,
+        "flagged_segments": flagged_segments,
         "layer2": layer2,
         "rewritten_text": working_text if local_rewrite_applied else None,
-        "skill_handoff_prompt": build_skill_handoff(text, layer1_after_rewrite, layer2, metadata, working_text),
+        "skill_handoff_prompt": build_skill_handoff(
+            text,
+            layer1_after_rewrite,
+            layer2,
+            metadata,
+            working_text,
+            flagged_segments=flagged_segments,
+        ),
         "response": "Send the generated handoff prompt to creator-script-safe.",
     }
 
