@@ -262,6 +262,28 @@ def fallback_output(ai_plan: dict[str, Any], note: str) -> dict[str, Any]:
     }
 
 
+def describe_exception(exc: Exception) -> tuple[str, str]:
+    if isinstance(exc, urllib.error.HTTPError):
+        body_text = ""
+        try:
+            body_text = exc.read().decode("utf-8", errors="replace")
+        except OSError:
+            body_text = ""
+        try:
+            parsed = json.loads(body_text) if body_text else {}
+        except json.JSONDecodeError:
+            parsed = {}
+        message = (
+            parsed.get("error", {}).get("message")
+            or parsed.get("detail", {}).get("message")
+            or body_text
+            or str(exc)
+        )
+        return f"http_{exc.code}", message[:600]
+
+    return exc.__class__.__name__, str(exc)[:600]
+
+
 def extract_output_text(response: dict[str, Any]) -> str:
     if response.get("output_text"):
         return str(response["output_text"])
@@ -328,9 +350,11 @@ def run_ai(ai_plan: dict[str, Any]) -> dict[str, Any]:
             "output": output,
         }
     except (urllib.error.URLError, TimeoutError, RuntimeError, KeyError, json.JSONDecodeError, OSError) as exc:
+        error_code, error_message = describe_exception(exc)
         return {
             "status": "error",
             "plan": public_plan,
-            "error": exc.__class__.__name__,
+            "error": error_code,
+            "error_message": error_message,
             "output": fallback_output(ai_plan, "AI call failed; local routing result is still available."),
         }
