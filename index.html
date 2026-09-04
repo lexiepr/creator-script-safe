@@ -798,6 +798,12 @@ function formatWorkflowResult(data){
   if (data.cache) {
     lines.push('Cache: ' + (data.cache.hit ? 'hit' : 'miss') + ' via ' + data.cache.backend);
   }
+  if (data.ai && data.ai.plan) {
+    lines.push('AI: ' + data.ai.status + ' / ' + data.ai.plan.model + ' / ' + data.ai.plan.review_target);
+    if (data.ai.plan.estimated_token_savings_ratio) {
+      lines.push('AI token savings: ' + data.ai.plan.estimated_token_savings_ratio);
+    }
+  }
   if (data.missing_context && data.missing_context.length) {
     lines.push('Missing context: ' + data.missing_context.join(', '));
   }
@@ -814,7 +820,41 @@ function formatWorkflowResult(data){
     lines.push('');
     lines.push('Full review is recommended. The server generated a Skill handoff prompt.');
   }
+  if (data.structured_output) {
+    lines.push('');
+    lines.push(formatStructuredOutput(data.structured_output));
+  }
 
+  return lines.join('\n');
+}
+
+function formatList(items, formatter){
+  if (!Array.isArray(items) || !items.length) return 'None';
+  return items.map(formatter).join('\n');
+}
+
+function formatStructuredOutput(output){
+  const lines = [];
+  lines.push('Overall risk:');
+  lines.push(output.overall_risk || '');
+  lines.push('');
+  lines.push('Category checks:');
+  lines.push(formatList(output.category_checks, item => '- ' + [item.category, item.status, item.note].filter(Boolean).join(': ')));
+  lines.push('');
+  lines.push('Risk findings:');
+  lines.push(formatList(output.risk_findings, item => '- ' + [item.severity, item.issue, item.fix].filter(Boolean).join(': ')));
+  lines.push('');
+  lines.push('Safer rewrites:');
+  lines.push(formatList(output.safer_rewrites, item => '- ' + [item.original, item.rewrite, item.reason].filter(Boolean).join(' -> ')));
+  lines.push('');
+  lines.push('Final safer script:');
+  lines.push(output.final_safer_script || '');
+  lines.push('');
+  lines.push('Live brief:');
+  lines.push(output.live_brief || '');
+  lines.push('');
+  lines.push('Notes:');
+  lines.push(formatList(output.notes, item => '- ' + item));
   return lines.join('\n');
 }
 
