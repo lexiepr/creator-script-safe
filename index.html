@@ -803,6 +803,12 @@ function formatWorkflowResult(data){
     if (data.ai.plan.estimated_token_savings_ratio) {
       lines.push('AI token savings: ' + data.ai.plan.estimated_token_savings_ratio);
     }
+    if (data.ai.error) {
+      lines.push('AI error: ' + data.ai.error);
+    }
+    if (data.ai.error_message) {
+      lines.push('AI error detail: ' + data.ai.error_message);
+    }
   }
   if (data.missing_context && data.missing_context.length) {
     lines.push('Missing context: ' + data.missing_context.join(', '));
