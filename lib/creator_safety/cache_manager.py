@@ -21,7 +21,7 @@ import urllib.request
 from typing import Any
 
 
-PIPELINE_CACHE_VERSION = "creator-safety-v3-segments"
+PIPELINE_CACHE_VERSION = "creator-safety-v4-ai-routing"
 DEFAULT_TTL_SECONDS = 24 * 60 * 60
 _MEMORY_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
 
