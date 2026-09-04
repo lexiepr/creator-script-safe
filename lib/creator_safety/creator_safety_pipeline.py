@@ -3,11 +3,11 @@
 Cost-throttled pipeline for Creator Script Safe.
 
 Order:
-1. Layer 1 machine/rule filter
-2. Layer 2 local strategy/classification filter
-3. Generate a handoff prompt for creator-script-safe only when needed
-
-No LLM calls are made by this script.
+1. Idea inputs go straight to AI generation with the fixed policy prefix
+2. Script inputs pass Layer 1 machine/rule filtering
+3. Script inputs pass Layer 2 local strategy/classification filtering
+4. Only risky segments or ambiguous cases call AI
+5. Duplicate inputs return from cache
 """
 
 from __future__ import annotations
@@ -19,12 +19,14 @@ from pathlib import Path
 from typing import Any
 
 try:
+    from .ai_router import HIGH_REFUSE_MIN, LOW_PASS_MAX, build_ai_plan, run_ai
     from .cache_manager import build_cache_key, cache_status, get_cached_result, set_cached_result
     from .input_classifier import IDEA, classify as classify_input
     from .layer1_machine_filter import check as layer1_check
     from .layer2_strategy_classifier import check as layer2_check
     from .segment_extractor import extract_flagged_segments
 except ImportError:
+    from ai_router import HIGH_REFUSE_MIN, LOW_PASS_MAX, build_ai_plan, run_ai
     from cache_manager import build_cache_key, cache_status, get_cached_result, set_cached_result
     from input_classifier import IDEA, classify as classify_input
     from layer1_machine_filter import check as layer1_check
@@ -37,6 +39,7 @@ ASK_FOR_CONTEXT = "ask_for_context"
 REWRITE_LOCALLY_FIRST = "rewrite_locally_first"
 REFUSE_OR_REDIRECT = "refuse_or_redirect"
 CALL_SKILL = "call_creator_script_safe"
+CALL_AI = "call_ai"
 
 
 def load_json_arg(value: str | None) -> dict[str, Any]:
@@ -138,6 +141,51 @@ def build_idea_handoff(
     )
 
 
+def fixed_local_output(
+    *,
+    overall_risk: str,
+    category_status: str,
+    category_note: str,
+    risk_issue: str = "",
+    risk_fix: str = "",
+    final_safer_script: str = "",
+    notes: list[str] | None = None,
+) -> dict[str, Any]:
+    findings = []
+    if risk_issue:
+        findings.append(
+            {
+                "severity": category_status.lower(),
+                "issue": risk_issue,
+                "evidence": "Local pre-screen",
+                "fix": risk_fix,
+            }
+        )
+    return {
+        "overall_risk": overall_risk,
+        "category_checks": [
+            {
+                "category": "Local pre-screen",
+                "status": category_status,
+                "note": category_note,
+            }
+        ],
+        "risk_findings": findings,
+        "safer_rewrites": [],
+        "final_safer_script": final_safer_script,
+        "live_brief": "",
+        "notes": notes or ["This local result does not guarantee platform approval."],
+    }
+
+
+def attach_ai_result(result: dict[str, Any], ai_plan: dict[str, Any]) -> dict[str, Any]:
+    ai_result = run_ai(ai_plan)
+    result["ai"] = ai_result
+    if ai_result.get("output"):
+        result["structured_output"] = ai_result["output"]
+    return result
+
+
 def decide(
     text: str,
     metadata: dict[str, Any] | None = None,
@@ -160,8 +208,14 @@ def decide(
     input_classification = classify_input(text)
 
     if input_classification["input_type"] == IDEA:
+        ai_plan = build_ai_plan(
+            original_text=text,
+            input_classification=input_classification,
+            metadata=metadata,
+            purpose="idea_generation",
+        )
         result = {
-            "decision": CALL_SKILL,
+            "decision": CALL_AI,
             "input_classification": input_classification,
             "skill_handoff_prompt": build_idea_handoff(text, input_classification, metadata),
             "response": (
@@ -169,6 +223,7 @@ def decide(
                 "Skip Layer 1/2 and generate a safer script with Creator Script Safe."
             ),
         }
+        attach_ai_result(result, ai_plan)
         cache_backend = set_cached_result(cache_key, result)
         result["cache"] = cache_status(False, cache_key, cache_backend)
         return result
@@ -184,6 +239,13 @@ def decide(
             "layer1": layer1,
             "flagged_segments": flagged_segments,
             "layer2": layer2,
+            "structured_output": fixed_local_output(
+                overall_risk="High",
+                category_status="Blocked",
+                category_note="Layer 1 found refusal-level risk.",
+                risk_issue="The request is unsafe as written.",
+                risk_fix="Redirect to a transparent, privacy-preserving, evidence-based, or educational alternative.",
+            ),
             "response": (
                 "Layer 1: Refuse/redirect. Layer 2: High. "
                 "Do not generate the unsafe request as written; offer a transparent, "
@@ -209,6 +271,7 @@ def decide(
 
     layer2 = layer2_check(working_text, layer1=layer1_after_rewrite, metadata=metadata, weights=weights)
     routing = layer2["routing"]
+    risk_probability = float(layer2.get("risk_probability", 0.0) or 0.0)
 
     if routing == "Needs more context":
         result = {
@@ -233,19 +296,58 @@ def decide(
             "layer1_after_rewrite": layer1_after_rewrite if local_rewrite_applied else None,
             "flagged_segments": flagged_segments,
             "layer2": layer2,
+            "structured_output": fixed_local_output(
+                overall_risk="High",
+                category_status="Blocked",
+                category_note="Layer 2 routed this content to refusal/redirect.",
+                risk_issue="The script is too risky to generate or improve as written.",
+                risk_fix="Ask for a safer purpose or redirect to educational, neutral wording.",
+            ),
             "response": "Do not generate the unsafe request as written; redirect to a safer alternative.",
         }
         cache_backend = set_cached_result(cache_key, result)
         result["cache"] = cache_status(False, cache_key, cache_backend)
         return result
 
-    if routing == "Cheap pass" and not force_full_review:
+    if risk_probability >= HIGH_REFUSE_MIN and not force_full_review:
+        result = {
+            "decision": REFUSE_OR_REDIRECT,
+            "input_classification": input_classification,
+            "layer1": layer1,
+            "layer1_after_rewrite": layer1_after_rewrite if local_rewrite_applied else None,
+            "flagged_segments": flagged_segments,
+            "layer2": layer2,
+            "structured_output": fixed_local_output(
+                overall_risk="High",
+                category_status="Blocked",
+                category_note=f"Layer 2 score {risk_probability} is above the direct-block threshold {HIGH_REFUSE_MIN}.",
+                risk_issue="The content is high risk based on local strategy signals.",
+                risk_fix="Do not call the LLM for this version; redirect or ask for a safer revision.",
+            ),
+            "response": "Layer 2 score is high. Block locally and skip the LLM.",
+        }
+        cache_backend = set_cached_result(cache_key, result)
+        result["cache"] = cache_status(False, cache_key, cache_backend)
+        return result
+
+    should_ai_review = (
+        force_full_review
+        or layer1_after_rewrite["result"] in {"Immediate rewrite", "Review needed"}
+        or LOW_PASS_MAX < risk_probability < HIGH_REFUSE_MIN
+    )
+
+    if risk_probability <= LOW_PASS_MAX and not should_ai_review:
         result = {
             "decision": FAST_LOCAL_RESPONSE,
             "input_classification": input_classification,
             "layer1": layer1,
             "flagged_segments": flagged_segments,
             "layer2": layer2,
+            "structured_output": fixed_local_output(
+                overall_risk="Low",
+                category_status="Pass",
+                category_note=f"Layer 2 score {risk_probability} is at or below the cheap-pass threshold {LOW_PASS_MAX}.",
+            ),
             "response": (
                 "Layer 1: Pass. Layer 2: Low. No obvious local pre-screen trigger found. "
                 "This does not guarantee platform approval."
@@ -255,23 +357,18 @@ def decide(
         result["cache"] = cache_status(False, cache_key, cache_backend)
         return result
 
-    if routing == "Rewrite first" and not force_full_review:
-        result = {
-            "decision": REWRITE_LOCALLY_FIRST,
-            "input_classification": input_classification,
-            "layer1": layer1,
-            "layer1_after_rewrite": layer1_after_rewrite if local_rewrite_applied else None,
-            "flagged_segments": flagged_segments,
-            "layer2": layer2,
-            "rewritten_text": working_text,
-            "response": "Rewrite flagged wording locally, re-run Layer 1 and Layer 2, then decide whether Skill review is needed.",
-        }
-        cache_backend = set_cached_result(cache_key, result)
-        result["cache"] = cache_status(False, cache_key, cache_backend)
-        return result
-
+    ai_plan = build_ai_plan(
+        original_text=text,
+        input_classification=input_classification,
+        metadata=metadata,
+        layer1=layer1_after_rewrite,
+        layer2=layer2,
+        flagged_segments=flagged_segments,
+        purpose="script_review_or_rewrite",
+        force_full_review=force_full_review,
+    )
     result = {
-        "decision": CALL_SKILL,
+        "decision": CALL_AI,
         "input_classification": input_classification,
         "layer1": layer1,
         "layer1_after_rewrite": layer1_after_rewrite if local_rewrite_applied else None,
@@ -286,8 +383,9 @@ def decide(
             working_text,
             flagged_segments=flagged_segments,
         ),
-        "response": "Send the generated handoff prompt to creator-script-safe.",
+        "response": "Route to AI with the fixed policy prefix and structured output schema.",
     }
+    attach_ai_result(result, ai_plan)
     cache_backend = set_cached_result(cache_key, result)
     result["cache"] = cache_status(False, cache_key, cache_backend)
     return result
