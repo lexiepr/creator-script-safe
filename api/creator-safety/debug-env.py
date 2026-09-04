@@ -9,13 +9,16 @@ class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         upstash_url = os.getenv("UPSTASH_REDIS_REST_URL")
         upstash_token = os.getenv("UPSTASH_REDIS_REST_TOKEN")
+        openai_key = os.getenv("OPENAI_API_KEY")
         self.write_json(
             200,
             {
                 "has_upstash_url": bool(upstash_url),
                 "has_upstash_token": bool(upstash_token),
+                "has_openai_key": bool(openai_key),
                 "upstash_url_length": len(upstash_url or ""),
                 "upstash_token_length": len(upstash_token or ""),
+                "openai_key_length": len(openai_key or ""),
                 "environment_hint": os.getenv("VERCEL_ENV", "unknown"),
             },
         )
